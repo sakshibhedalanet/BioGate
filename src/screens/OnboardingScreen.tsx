@@ -11,6 +11,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { COLORS, THEME_COLORS } from '../constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Logo from '../components/Logo';
 
 const { width } = Dimensions.get('window');
 
@@ -106,7 +107,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
 
           <View style={styles.content}>
             <View style={styles.logoWrapper}>
-               <MaterialCommunityIcons name={currentItem.icon as any} size={120} color={currentItem.color} />
+               <Logo size={120} color={currentItem.color} />
             </View>
             <Text style={styles.description}>{currentItem.description}</Text>
           </View>

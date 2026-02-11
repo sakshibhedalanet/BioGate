@@ -18,6 +18,7 @@ import { authService } from '../services/authService';
 import { useBiometrics } from '../hooks/useBiometrics';
 import { COLORS, THEME_COLORS } from '../constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Logo from '../components/Logo';
 
 type LoginScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Login'>;
@@ -111,15 +112,27 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   };
 
   const handleBiometricLogin = async () => {
-    startScanningAnimation();
-    const success = await authenticate('BIOMETRIC VERIFICATION');
-    if (success) {
-      // Even if session expired, biometric success can log in if we stored credentials,
-      // but for this demo, we assume biometric success = access granted.
-      await authService.loginWithBiometrics();
-      navigation.replace('Home');
+    if (!isCompatible) {
+      Alert.alert('NOT SUPPORTED', 'BIOMETRIC HARDWARE NOT DETECTED.');
+      return;
     }
-    stopScanningAnimation();
+
+    startScanningAnimation();
+    try {
+      const success = await authenticate('BIOMETRIC VERIFICATION');
+      if (success) {
+        await authService.loginWithBiometrics();
+        await authService.setBiometricEnabled(true);
+        navigation.replace('Home');
+      } else {
+        // Only alert if it was a real failure, not just a cancel (though cancel is often success: false)
+        Alert.alert('VERIFICATION FAILED', 'PLEASE TRY AGAIN OR USE EMAIL.');
+      }
+    } catch (e) {
+      Alert.alert('ERROR', 'AN UNEXPECTED ERROR OCCURRED DURING BIOMETRIC SYNC.');
+    } finally {
+      stopScanningAnimation();
+    }
   };
 
   const translateY = scanAnim.interpolate({
@@ -134,6 +147,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     >
       <Animated.View style={[styles.inner, { opacity: fadeAnim }]}>
         <View style={styles.header}>
+          <Logo size={60} color={THEME_COLORS[0]} />
           <View style={{ marginTop: 20 }}>
             <Text style={styles.title}>BIOGATE</Text>
             <Text style={styles.subtitle}>SYSTEM_AUTH_v2.0</Text>
@@ -148,7 +162,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
-              placeholder="user@gate.io"
+              placeholder="sakshibheda@gmail.com"
               placeholderTextColor="#444"
             />
           </View>
@@ -160,18 +174,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               value={password}
               onChangeText={setPassword}
               secureTextEntry
-              placeholder="gatekeeper"
+              placeholder="sakshi@1111"
               placeholderTextColor="#444"
             />
           </View>
 
           <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-            <Text style={styles.loginButtonText}>INITIATE_ACCESS</Text>
-            <MaterialCommunityIcons name="chevron-right" size={24} color="#000" />
+            <Text style={styles.loginButtonText}>SIGN IN WITH EMAIL</Text>
+            <MaterialCommunityIcons name="email-outline" size={24} color="#000" />
           </TouchableOpacity>
         </View>
 
-        {biometricEnabled && (
+        {(biometricEnabled || isCompatible) && (
           <TouchableOpacity
             style={styles.biometricSection}
             onPress={handleBiometricLogin}
@@ -180,7 +194,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                <Animated.View style={[styles.scanLine, { transform: [{ translateY }], backgroundColor: THEME_COLORS[2] }]} />
                <MaterialCommunityIcons name="face-recognition" size={80} color={THEME_COLORS[2]} style={{ opacity: 0.2 }} />
             </View>
-            <Text style={[styles.biometricText, { color: THEME_COLORS[2] }]}>WAITING_FOR_BIO_SYNC...</Text>
+            <Text style={[styles.biometricText, { color: THEME_COLORS[2] }]}>
+              {biometricEnabled ? 'TAP TO SCAN BIOMETRICS' : 'ENABLE BIOMETRICS'}
+            </Text>
           </TouchableOpacity>
         )}
       </Animated.View>
