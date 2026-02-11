@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 
 const AUTH_SESSION_KEY = 'biogate_session';
 const BIOMETRIC_ENABLED_KEY = 'biogate_biometric_enabled';
+const ONBOARDING_COMPLETE_KEY = 'biogate_onboarding_complete';
 
 export const authService = {
   login: async (email: string, password: string): Promise<boolean> => {
@@ -44,5 +45,14 @@ export const authService = {
   // For dummy purposes, we consider a successful biometric auth as a login
   loginWithBiometrics: async (): Promise<void> => {
     await AsyncStorage.setItem(AUTH_SESSION_KEY, 'dummy-token-biometric');
+  },
+
+  isOnboardingComplete: async (): Promise<boolean> => {
+    const complete = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
+    return complete === 'true';
+  },
+
+  setOnboardingComplete: async (complete: boolean): Promise<void> => {
+    await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, complete.toString());
   }
 };
