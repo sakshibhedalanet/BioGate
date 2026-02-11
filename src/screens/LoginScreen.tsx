@@ -18,6 +18,7 @@ import { authService } from '../services/authService';
 import { useBiometrics } from '../hooks/useBiometrics';
 import { COLORS, THEME_COLORS } from '../constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Logo from '../components/Logo';
 
 type LoginScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Login'>;
@@ -134,9 +135,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     >
       <Animated.View style={[styles.inner, { opacity: fadeAnim }]}>
         <View style={styles.header}>
-          <View style={[styles.accentSquare, { backgroundColor: THEME_COLORS[0] }]} />
-          <Text style={styles.title}>BIOGATE</Text>
-          <Text style={styles.subtitle}>SYSTEM_AUTH_v2.0</Text>
+          <Logo size={60} color={THEME_COLORS[0]} />
+          <View style={{ marginTop: 20 }}>
+            <Text style={styles.title}>BIOGATE</Text>
+            <Text style={styles.subtitle}>SYSTEM_AUTH_v2.0</Text>
+          </View>
         </View>
 
         <View style={styles.form}>
@@ -159,7 +162,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               value={password}
               onChangeText={setPassword}
               secureTextEntry
-              placeholder="••••••••"
+              placeholder="gatekeeper"
               placeholderTextColor="#444"
             />
           </View>
