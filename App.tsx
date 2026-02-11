@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
 import AppNavigator from './src/navigation/AppNavigator';
 import { authService } from './src/services/authService';
+import { COLORS } from './src/constants/theme';
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -14,10 +15,14 @@ export default function App() {
     const checkStatus = async () => {
       try {
         const onboardingComplete = await authService.isOnboardingComplete();
+        const biometricEnabled = await authService.isBiometricEnabled();
         const loggedIn = await authService.isLoggedIn();
 
         if (!onboardingComplete) {
           setInitialRoute('Onboarding');
+        } else if (biometricEnabled) {
+          // If biometrics are enabled, always go to Login to challenge the user
+          setInitialRoute('Login');
         } else if (loggedIn) {
           setInitialRoute('Home');
         } else {
@@ -35,8 +40,8 @@ export default function App() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0A0A0A' }}>
-        <ActivityIndicator size="large" color="#007AFF" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
