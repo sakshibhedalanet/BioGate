@@ -8,7 +8,7 @@ const ONBOARDING_COMPLETE_KEY = 'biogate_onboarding_complete';
 export const authService = {
   login: async (email: string, password: string): Promise<boolean> => {
     // Dummy validation
-    if (email === 'user@gate.io' && password === 'gatekeeper') {
+    if (email === 'sakshibheda@gmail.com' && password === 'sakshi@1111') {
       await AsyncStorage.setItem(AUTH_SESSION_KEY, 'dummy-token');
       return true;
     }
