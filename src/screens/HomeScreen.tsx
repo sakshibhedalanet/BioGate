@@ -5,7 +5,6 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { authService } from '../services/authService';
 import { COLORS, THEME_COLORS } from '../constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import Logo from '../components/Logo';
 
 type HomeScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -31,8 +30,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Logo size={40} color={THEME_COLORS[0]} />
-          <View style={{ marginLeft: 15 }}>
+          <View>
             <Text style={styles.welcome}>COMMAND_CENTER</Text>
             <Text style={styles.status}>SYSTEM_STATUS: <Text style={{ color: '#00FF00' }}>ONLINE</Text></Text>
           </View>

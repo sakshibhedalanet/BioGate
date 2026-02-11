@@ -1,0 +1,11 @@
+  --non-interactive is not supported, use $CI=1 instead
+Starting project at /app
+Starting Metro Bundler
+Waiting on http://localhost:8081
+Logs for your project will appear below.
+Web ./index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 3450ms index.ts (573 modules)
+ LOG  [web] Logs will appear in the browser console
+Web ./index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 51ms index.ts (1 module)
+ LOG  [web] Logs will appear in the browser console

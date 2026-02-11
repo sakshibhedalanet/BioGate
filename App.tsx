@@ -14,20 +14,8 @@ export default function App() {
   useEffect(() => {
     const checkStatus = async () => {
       try {
-        const onboardingComplete = await authService.isOnboardingComplete();
-        const biometricEnabled = await authService.isBiometricEnabled();
-        const loggedIn = await authService.isLoggedIn();
-
-        if (!onboardingComplete) {
-          setInitialRoute('Onboarding');
-        } else if (biometricEnabled) {
-          // If biometrics are enabled, always go to Login to challenge the user
-          setInitialRoute('Login');
-        } else if (loggedIn) {
-          setInitialRoute('Home');
-        } else {
-          setInitialRoute('Login');
-        }
+        // ALWAYS start with Onboarding as per user request
+        setInitialRoute('Onboarding');
       } catch (error) {
         console.error('Failed to check app status:', error);
       } finally {

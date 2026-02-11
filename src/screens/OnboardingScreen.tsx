@@ -1,21 +1,18 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
   Text,
   TouchableOpacity,
-  FlatList,
   Dimensions,
   Animated,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { authService } from '../services/authService';
 import { COLORS, THEME_COLORS } from '../constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import Logo from '../components/Logo';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 type OnboardingScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Onboarding'>;
@@ -49,96 +46,104 @@ const DATA = [
 ];
 
 const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
-  const scrollX = useRef(new Animated.Value(0)).current;
-  const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const slideAnim = useRef(new Animated.Value(0)).current;
 
-  const handleNext = async () => {
+  const currentItem = DATA[currentIndex];
+
+  const handleNext = () => {
     if (currentIndex < DATA.length - 1) {
-      flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });
+      // Animate out
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: -20,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setCurrentIndex(currentIndex + 1);
+        slideAnim.setValue(20);
+        // Animate in
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.timing(slideAnim, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      });
     } else {
-      await authService.setOnboardingComplete(true);
       navigation.replace('Login');
     }
   };
 
-  const renderItem = ({ item, index }: { item: typeof DATA[0]; index: number }) => {
-    const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
-
-    const opacity = scrollX.interpolate({
-      inputRange,
-      outputRange: [0, 1, 0],
-    });
-
-    return (
+  return (
+    <View style={styles.container}>
       <View style={styles.slide}>
-        <Animated.View style={[styles.inner, { opacity }]}>
+        <Animated.View style={[
+          styles.inner,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateX: slideAnim }]
+          }
+        ]}>
           <View style={styles.header}>
-            <View style={[styles.accentSquare, { backgroundColor: item.color }]} />
-            <Text style={styles.title}>{item.title}</Text>
-            <Text style={styles.subtitle}>{item.subtitle}</Text>
+            <View style={[styles.accentSquare, { backgroundColor: currentItem.color }]} />
+            <Text style={styles.title}>{currentItem.title}</Text>
+            <Text style={styles.subtitle}>{currentItem.subtitle}</Text>
           </View>
 
           <View style={styles.content}>
             <View style={styles.logoWrapper}>
-               <Logo size={120} color={item.color} />
+               <MaterialCommunityIcons name={currentItem.icon as any} size={120} color={currentItem.color} />
             </View>
-            <Text style={styles.description}>{item.description}</Text>
-          </View>
-
-          <View style={styles.footer}>
-            <View style={styles.indicatorContainer}>
-              {DATA.map((_, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.indicator,
-                    {
-                      backgroundColor: i === index ? item.color : '#222',
-                      width: i === index ? 30 : 10
-                    }
-                  ]}
-                />
-              ))}
-            </View>
-
-            <TouchableOpacity
-              style={[styles.nextButton, { backgroundColor: item.color }]}
-              onPress={handleNext}
-            >
-              <Text style={styles.nextButtonText}>
-                {index === DATA.length - 1 ? 'INITIALIZE' : 'NEXT_STEP'}
-              </Text>
-              <MaterialCommunityIcons name="chevron-right" size={24} color="#000" />
-            </TouchableOpacity>
+            <Text style={styles.description}>{currentItem.description}</Text>
           </View>
         </Animated.View>
 
+        {/* Static Footer (indicators and button) */}
+        <View style={styles.footer}>
+          <View style={styles.indicatorContainer}>
+            {DATA.map((_, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.indicator,
+                  {
+                    backgroundColor: i === currentIndex ? currentItem.color : '#222',
+                    width: i === currentIndex ? 30 : 10
+                  }
+                ]}
+              />
+            ))}
+          </View>
+
+          <TouchableOpacity
+            style={[styles.nextButton, { backgroundColor: currentItem.color }]}
+            onPress={handleNext}
+          >
+            <Text style={styles.nextButtonText}>
+              {currentIndex === DATA.length - 1 ? 'INITIALIZE' : 'NEXT_STEP'}
+            </Text>
+            <MaterialCommunityIcons name="chevron-right" size={24} color="#000" />
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.decorationContainer}>
-          <View style={[styles.decorCircle, { borderColor: item.color, top: -50, right: -50 }]} />
+          <View style={[styles.decorCircle, { borderColor: currentItem.color, top: -50, right: -50 }]} />
         </View>
       </View>
-    );
-  };
-
-  return (
-    <View style={styles.container}>
-      <Animated.FlatList
-        ref={flatListRef}
-        data={DATA}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-          { useNativeDriver: true }
-        )}
-        onMomentumScrollEnd={(event) => {
-          setCurrentIndex(Math.round(event.nativeEvent.contentOffset.x / width));
-        }}
-      />
     </View>
   );
 };
@@ -149,8 +154,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   slide: {
-    width,
-    height,
+    flex: 1,
     padding: 30,
     justifyContent: 'center',
   },
@@ -195,10 +199,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   footer: {
-    marginTop: 60,
+    position: 'absolute',
+    bottom: 50,
+    left: 30,
+    right: 30,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    zIndex: 20,
   },
   indicatorContainer: {
     flexDirection: 'row',
