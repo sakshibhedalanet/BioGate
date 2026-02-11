@@ -11,8 +11,9 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { authService } from '../services/authService';
-import { COLORS } from '../constants/theme';
+import { COLORS, THEME_COLORS } from '../constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Logo from '../components/Logo';
 
 const { width, height } = Dimensions.get('window');
 
@@ -24,23 +25,26 @@ const DATA = [
   {
     id: '1',
     title: 'SECURE\nACCESS',
-    description: 'Advanced biometric security for your digital fortress.',
-    icon: 'shield-lock-outline',
-    color: COLORS.palette[0],
+    subtitle: 'v1.0_SHIELD',
+    description: 'Advanced biometric security for your digital fortress. Deploying multi-factor protocols.',
+    color: THEME_COLORS[0],
+    icon: 'shield-lock',
   },
   {
     id: '2',
-    title: 'BIOMETRIC\nGATEWAY',
-    description: 'Face and Fingerprint recognition at the speed of light.',
+    title: 'BIO_SYNC\nGATEWAY',
+    subtitle: 'v2.0_SYNC',
+    description: 'Face and Fingerprint recognition at the speed of light. Syncing identity parameters.',
+    color: THEME_COLORS[2],
     icon: 'fingerprint',
-    color: COLORS.palette[2],
   },
   {
     id: '3',
-    title: 'READY TO\nSTART?',
-    description: 'Step into the future of authentication today.',
-    icon: 'rocket-launch-outline',
-    color: COLORS.palette[5],
+    title: 'READY_TO\nINITIALIZE',
+    subtitle: 'v3.0_START',
+    description: 'Step into the future of authentication today. System initialization complete.',
+    color: THEME_COLORS[5],
+    icon: 'rocket-launch',
   },
 ];
 
@@ -61,28 +65,57 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   const renderItem = ({ item, index }: { item: typeof DATA[0]; index: number }) => {
     const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
 
-    const scale = scrollX.interpolate({
+    const opacity = scrollX.interpolate({
       inputRange,
-      outputRange: [0.8, 1, 0.8],
-    });
-
-    const rotate = scrollX.interpolate({
-      inputRange,
-      outputRange: ['-10deg', '0deg', '10deg'],
+      outputRange: [0, 1, 0],
     });
 
     return (
       <View style={styles.slide}>
-        <View style={[styles.geometricBg, { backgroundColor: item.color, opacity: 0.1 }]} />
-        <Animated.View style={[styles.iconContainer, { transform: [{ scale }, { rotate }] }]}>
-          <View style={[styles.iconCircle, { borderColor: item.color }]}>
-             <MaterialCommunityIcons name={item.icon as any} size={100} color={item.color} />
+        <Animated.View style={[styles.inner, { opacity }]}>
+          <View style={styles.header}>
+            <View style={[styles.accentSquare, { backgroundColor: item.color }]} />
+            <Text style={styles.title}>{item.title}</Text>
+            <Text style={styles.subtitle}>{item.subtitle}</Text>
           </View>
-          {/* Placeholder for SVG: In a real app, replace with <SvgUri source={...} /> */}
+
+          <View style={styles.content}>
+            <View style={styles.logoWrapper}>
+               <Logo size={120} color={item.color} />
+            </View>
+            <Text style={styles.description}>{item.description}</Text>
+          </View>
+
+          <View style={styles.footer}>
+            <View style={styles.indicatorContainer}>
+              {DATA.map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.indicator,
+                    {
+                      backgroundColor: i === index ? item.color : '#222',
+                      width: i === index ? 30 : 10
+                    }
+                  ]}
+                />
+              ))}
+            </View>
+
+            <TouchableOpacity
+              style={[styles.nextButton, { backgroundColor: item.color }]}
+              onPress={handleNext}
+            >
+              <Text style={styles.nextButtonText}>
+                {index === DATA.length - 1 ? 'INITIALIZE' : 'NEXT_STEP'}
+              </Text>
+              <MaterialCommunityIcons name="chevron-right" size={24} color="#000" />
+            </TouchableOpacity>
+          </View>
         </Animated.View>
-        <View style={styles.textContainer}>
-          <Text style={[styles.title, { color: item.color }]}>{item.title}</Text>
-          <Text style={styles.description}>{item.description}</Text>
+
+        <View style={styles.decorationContainer}>
+          <View style={[styles.decorCircle, { borderColor: item.color, top: -50, right: -50 }]} />
         </View>
       </View>
     );
@@ -106,39 +139,6 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
           setCurrentIndex(Math.round(event.nativeEvent.contentOffset.x / width));
         }}
       />
-
-      <View style={styles.footer}>
-        <View style={styles.indicatorContainer}>
-          {DATA.map((_, index) => {
-            const widthAnim = scrollX.interpolate({
-              inputRange: [(index - 1) * width, index * width, (index + 1) * width],
-              outputRange: [10, 30, 10],
-              extrapolate: 'clamp',
-            });
-            const opacity = scrollX.interpolate({
-              inputRange: [(index - 1) * width, index * width, (index + 1) * width],
-              outputRange: [0.3, 1, 0.3],
-              extrapolate: 'clamp',
-            });
-            return (
-              <Animated.View
-                key={index}
-                style={[
-                  styles.indicator,
-                  { width: widthAnim, opacity, backgroundColor: COLORS.palette[index % COLORS.palette.length] },
-                ]}
-              />
-            );
-          })}
-        </View>
-
-        <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-          <Text style={styles.nextButtonText}>
-            {currentIndex === DATA.length - 1 ? 'GET STARTED' : 'NEXT'}
-          </Text>
-          <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" />
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };
@@ -151,53 +151,51 @@ const styles = StyleSheet.create({
   slide: {
     width,
     height,
+    padding: 30,
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
   },
-  geometricBg: {
-    position: 'absolute',
-    width: width * 1.5,
-    height: width * 1.5,
-    borderRadius: 100,
-    top: -width * 0.5,
-    right: -width * 0.5,
-  },
-  iconContainer: {
-    marginBottom: 60,
-  },
-  iconCircle: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    borderWidth: 2,
-    borderStyle: 'dashed',
+  inner: {
+    zIndex: 10,
+    flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
   },
-  textContainer: {
-    alignItems: 'flex-start',
-    width: '100%',
-    paddingHorizontal: 20,
+  header: {
+    marginBottom: 40,
+  },
+  accentSquare: {
+    width: 40,
+    height: 40,
+    marginBottom: 20,
   },
   title: {
     fontSize: 48,
     fontWeight: '900',
+    color: '#fff',
+    letterSpacing: -2,
     lineHeight: 52,
-    marginBottom: 20,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: COLORS.textDim,
+    fontWeight: '700',
+    letterSpacing: 2,
+    marginTop: 5,
+  },
+  content: {
+    marginTop: 20,
+  },
+  logoWrapper: {
+    marginBottom: 30,
+    alignItems: 'flex-start',
   },
   description: {
     fontSize: 18,
-    color: COLORS.textDim,
-    lineHeight: 26,
-    maxWidth: '80%',
+    color: '#ccc',
+    lineHeight: 28,
+    fontWeight: '500',
   },
   footer: {
-    position: 'absolute',
-    bottom: 50,
-    left: 20,
-    right: 20,
+    marginTop: 60,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -206,25 +204,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   indicator: {
-    height: 6,
-    borderRadius: 3,
-    marginHorizontal: 4,
+    height: 4,
+    borderRadius: 2,
+    marginRight: 8,
   },
   nextButton: {
+    height: 60,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.card,
-    paddingVertical: 15,
-    paddingHorizontal: 25,
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
   },
   nextButtonText: {
-    color: '#fff',
+    color: '#000',
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '900',
     marginRight: 10,
+    letterSpacing: 1,
+  },
+  decorationContainer: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+    zIndex: 0,
+  },
+  decorCircle: {
+    position: 'absolute',
+    width: 250,
+    height: 250,
+    borderRadius: 125,
+    borderWidth: 1,
+    opacity: 0.1,
   },
 });
 
