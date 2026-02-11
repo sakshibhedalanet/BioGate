@@ -8,14 +8,16 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Image,
   Animated,
   Easing,
+  Dimensions,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { authService } from '../services/authService';
 import { useBiometrics } from '../hooks/useBiometrics';
+import { COLORS, THEME_COLORS } from '../constants/theme';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 type LoginScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Login'>;
@@ -28,28 +30,29 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const { isCompatible, hasHardware, authenticate } = useBiometrics();
 
   const scanAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 1000,
+      useNativeDriver: true,
+    }).start();
+
     const initializeAuth = async () => {
+      // If already logged in AND biometrics are NOT enabled, just go home
       const loggedIn = await authService.isLoggedIn();
-      if (loggedIn) {
+      const enabled = await authService.isBiometricEnabled();
+      setBiometricEnabled(enabled);
+
+      if (loggedIn && !enabled) {
         navigation.replace('Home');
         return;
       }
 
-      const enabled = await authService.isBiometricEnabled();
-      setBiometricEnabled(enabled);
-
+      // If biometrics are enabled, trigger them automatically
       if (enabled) {
-        startScanningAnimation();
-        setTimeout(async () => {
-          const success = await authenticate('Login to BioGate');
-          if (success) {
-            await authService.loginWithBiometrics();
-            navigation.replace('Home');
-          }
-          stopScanningAnimation();
-        }, 500);
+        handleBiometricLogin();
       }
     };
 
@@ -61,14 +64,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       Animated.sequence([
         Animated.timing(scanAnim, {
           toValue: 1,
-          duration: 1500,
-          easing: Easing.inOut(Easing.ease),
+          duration: 2000,
+          easing: Easing.bezier(0.4, 0, 0.2, 1),
           useNativeDriver: true,
         }),
         Animated.timing(scanAnim, {
           toValue: 0,
-          duration: 1500,
-          easing: Easing.inOut(Easing.ease),
+          duration: 2000,
+          easing: Easing.bezier(0.4, 0, 0.2, 1),
           useNativeDriver: true,
         }),
       ])
@@ -86,16 +89,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       const isBioEnabled = await authService.isBiometricEnabled();
       if (!isBioEnabled && isCompatible && hasHardware) {
         Alert.alert(
-          'Enable Biometrics',
-          'Would you like to enable biometric login for next time?',
+          'ENABLE BIOMETRICS',
+          'SECURE YOUR ACCESS WITH BIOMETRIC DATA.',
           [
+            { text: 'SKIP', onPress: () => navigation.replace('Home'), style: 'cancel' },
             {
-              text: 'No',
-              onPress: () => navigation.replace('Home'),
-              style: 'cancel',
-            },
-            {
-              text: 'Yes',
+              text: 'ENABLE',
               onPress: async () => {
                 await authService.setBiometricEnabled(true);
                 navigation.replace('Home');
@@ -107,14 +106,16 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         navigation.replace('Home');
       }
     } else {
-      Alert.alert('Login Failed', 'Invalid email or password.');
+      Alert.alert('ACCESS DENIED', 'INVALID CREDENTIALS.');
     }
   };
 
   const handleBiometricLogin = async () => {
     startScanningAnimation();
-    const success = await authenticate('Login to BioGate');
+    const success = await authenticate('BIOMETRIC VERIFICATION');
     if (success) {
+      // Even if session expired, biometric success can log in if we stored credentials,
+      // but for this demo, we assume biometric success = access granted.
       await authService.loginWithBiometrics();
       navigation.replace('Home');
     }
@@ -123,7 +124,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   const translateY = scanAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 120],
+    outputRange: [0, 150],
   });
 
   return (
@@ -131,47 +132,61 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <View style={styles.card}>
-        <Image source={require('../../assets/profile.png')} style={styles.logo} resizeMode="contain" />
-        <Text style={styles.title}>BioGate</Text>
-        <Text style={styles.subtitle}>Secure Entry System</Text>
-
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Identity Email"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            placeholderTextColor="#999"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Security Pin"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            placeholderTextColor="#999"
-          />
+      <Animated.View style={[styles.inner, { opacity: fadeAnim }]}>
+        <View style={styles.header}>
+          <View style={[styles.accentSquare, { backgroundColor: THEME_COLORS[0] }]} />
+          <Text style={styles.title}>BIOGATE</Text>
+          <Text style={styles.subtitle}>SYSTEM_AUTH_v2.0</Text>
         </View>
 
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <Text style={styles.loginButtonText}>ACCESS SYSTEM</Text>
-        </TouchableOpacity>
+        <View style={styles.form}>
+          <View style={styles.inputWrapper}>
+            <Text style={styles.label}>IDENT_EMAIL</Text>
+            <TextInput
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              placeholder="user@gate.io"
+              placeholderTextColor="#444"
+            />
+          </View>
+
+          <View style={styles.inputWrapper}>
+            <Text style={styles.label}>SECURE_TOKEN</Text>
+            <TextInput
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              placeholder="••••••••"
+              placeholderTextColor="#444"
+            />
+          </View>
+
+          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+            <Text style={styles.loginButtonText}>INITIATE_ACCESS</Text>
+            <MaterialCommunityIcons name="chevron-right" size={24} color="#000" />
+          </TouchableOpacity>
+        </View>
 
         {biometricEnabled && (
           <TouchableOpacity
-            style={styles.biometricArea}
+            style={styles.biometricSection}
             onPress={handleBiometricLogin}
           >
-            <View style={styles.scannerFrame}>
-              <Animated.View style={[styles.scanLine, { transform: [{ translateY }] }]} />
-              <Text style={styles.scannerIcon}>👤</Text>
+            <View style={styles.scannerContainer}>
+               <Animated.View style={[styles.scanLine, { transform: [{ translateY }], backgroundColor: THEME_COLORS[2] }]} />
+               <MaterialCommunityIcons name="face-recognition" size={80} color={THEME_COLORS[2]} style={{ opacity: 0.2 }} />
             </View>
-            <Text style={styles.biometricText}>Waiting for Biometric...</Text>
+            <Text style={[styles.biometricText, { color: THEME_COLORS[2] }]}>WAITING_FOR_BIO_SYNC...</Text>
           </TouchableOpacity>
         )}
+      </Animated.View>
+
+      <View style={styles.decorationContainer}>
+        <View style={[styles.decorCircle, { borderColor: THEME_COLORS[4], top: -50, right: -50 }]} />
+        <View style={[styles.decorCircle, { borderColor: THEME_COLORS[6], bottom: -100, left: -100, width: 300, height: 300 }]} />
       </View>
     </KeyboardAvoidingView>
   );
@@ -180,110 +195,111 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0A0A', // Dark theme for high-tech look
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  card: {
-    width: '100%',
-    maxWidth: 400,
-    backgroundColor: '#1A1A1A',
-    borderRadius: 30,
+    backgroundColor: COLORS.background,
     padding: 30,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#333',
+    justifyContent: 'center',
   },
-  logo: {
-    width: 100,
-    height: 100,
-    marginBottom: 10,
+  inner: {
+    zIndex: 10,
+  },
+  header: {
+    marginBottom: 50,
+  },
+  accentSquare: {
+    width: 40,
+    height: 40,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#007AFF',
-    letterSpacing: 2,
+    fontSize: 56,
+    fontWeight: '900',
+    color: '#fff',
+    letterSpacing: -2,
   },
   subtitle: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 30,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    color: COLORS.textDim,
+    fontWeight: '700',
+    letterSpacing: 2,
   },
-  inputContainer: {
+  form: {
     width: '100%',
-    marginBottom: 20,
+  },
+  inputWrapper: {
+    marginBottom: 25,
+  },
+  label: {
+    color: COLORS.textDim,
+    fontSize: 12,
+    fontWeight: '800',
+    marginBottom: 8,
+    letterSpacing: 1,
   },
   input: {
-    width: '100%',
-    height: 55,
-    backgroundColor: '#252525',
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    marginBottom: 15,
+    height: 60,
+    borderWidth: 2,
+    borderColor: '#222',
+    backgroundColor: '#111',
+    borderRadius: 0,
+    paddingHorizontal: 20,
     color: '#fff',
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#444',
+    fontSize: 18,
+    fontWeight: '600',
   },
   loginButton: {
-    width: '100%',
-    height: 55,
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-    justifyContent: 'center',
+    height: 70,
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    shadowColor: '#007AFF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5,
+    paddingHorizontal: 25,
+    marginTop: 10,
   },
   loginButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
+    color: '#000',
+    fontSize: 18,
+    fontWeight: '900',
     letterSpacing: 1,
   },
-  biometricArea: {
-    marginTop: 30,
+  biometricSection: {
+    marginTop: 50,
     alignItems: 'center',
   },
-  scannerFrame: {
-    width: 120,
-    height: 120,
-    borderWidth: 2,
-    borderColor: '#007AFF',
-    borderRadius: 15,
+  scannerContainer: {
+    width: 150,
+    height: 150,
+    borderWidth: 1,
+    borderColor: '#333',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
-    backgroundColor: '#222',
+    backgroundColor: '#161616',
   },
   scanLine: {
     position: 'absolute',
     top: 0,
     width: '100%',
-    height: 2,
-    backgroundColor: '#007AFF',
-    zIndex: 2,
-    shadowColor: '#007AFF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 5,
-  },
-  scannerIcon: {
-    fontSize: 60,
-    opacity: 0.3,
+    height: 3,
+    zIndex: 5,
   },
   biometricText: {
-    marginTop: 10,
-    color: '#007AFF',
-    fontSize: 12,
-    fontWeight: '600',
+    marginTop: 15,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 3,
+  },
+  decorationContainer: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+    zIndex: 0,
+  },
+  decorCircle: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 150,
+    borderWidth: 1,
+    opacity: 0.1,
   },
 });
 
